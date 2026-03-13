@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js"
+    "build": "echo 'server: using tsx runtime'",
+    "start": "npx tsx src/index.ts"
   },
   "dependencies": {
     "express": "^4.21.0",
