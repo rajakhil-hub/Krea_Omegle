@@ -18,6 +18,8 @@ services:
         sync: false
       - key: ALLOWED_EMAIL_DOMAIN
         value: krea.ac.in
+      - key: AUTH_TRUST_HOST
+        value: "true"
       - key: TIME_GATE_START_HOUR
         value: "0"
       - key: TIME_GATE_END_HOUR

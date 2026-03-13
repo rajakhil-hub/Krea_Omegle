@@ -1,4 +1,5 @@
 import { createServer } from "http";
+import { parse } from "url";
 import next from "next";
 import { Server } from "socket.io";
 import { config } from "./server/config.js";
@@ -22,16 +23,47 @@ const app = next({ dev });
 const nextHandler = app.getRequestHandler();
 
 app.prepare().then(() => {
-  const httpServer = createServer((req, res) => {
+  const httpServer = createServer();
+
+  // Socket.IO — attach BEFORE adding request listeners
+  const io = new Server<
+    ClientToServerEvents,
+    ServerToClientEvents,
+    InterServerEvents,
+    SocketData
+  >(httpServer, {
+    path: "/socket.io",
+    addTrailingSlash: false,
+    transports: ["polling", "websocket"],
+    cors: {
+      origin: "*",
+      methods: ["GET", "POST"],
+    },
+  });
+
+  // Socket.IO middleware
+  io.use(authMiddleware);
+  io.use(timeGateMiddleware);
+
+  // Connection handler
+  registerConnectionHandler(io);
+
+  // Start 2 AM cron disconnect
+  setupTimeGateCron(io);
+
+  // HTTP request handler — runs AFTER Socket.IO intercepts /socket.io/ requests
+  httpServer.on("request", (req, res) => {
+    const pathname = req.url || "/";
+
     // Health check
-    if (req.url === "/health") {
+    if (pathname === "/health") {
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ status: "ok", time: new Date().toISOString() }));
       return;
     }
 
     // ICE servers endpoint
-    if (req.url === "/api/ice-servers") {
+    if (pathname === "/api/ice-servers") {
       const iceServers: RTCIceServer[] = [
         { urls: "stun:stun.l.google.com:19302" },
         { urls: "stun:stun1.l.google.com:19302" },
@@ -42,7 +74,6 @@ app.prepare().then(() => {
         res.end(JSON.stringify({ iceServers }));
       };
 
-      // Metered TURN API
       if (config.METERED_API_KEY) {
         const appName = config.METERED_APP_NAME || "krea";
         fetch(
@@ -59,7 +90,6 @@ app.prepare().then(() => {
         return;
       }
 
-      // Manual TURN credentials
       if (config.TURN_URLS && config.TURN_USERNAME && config.TURN_CREDENTIAL) {
         const turnUrls = config.TURN_URLS.split(",").map((u: string) => u.trim());
         iceServers.push({
@@ -74,7 +104,7 @@ app.prepare().then(() => {
     }
 
     // Debug endpoint
-    if (req.url === "/debug") {
+    if (pathname === "/debug") {
       const sockets = Array.from(io.sockets.sockets.entries()).map(([id, s]) => ({
         id,
         name: s.data.name,
@@ -97,25 +127,9 @@ app.prepare().then(() => {
     }
 
     // Everything else -> Next.js
-    nextHandler(req, res);
+    const parsedUrl = parse(req.url || "/", true);
+    nextHandler(req, res, parsedUrl);
   });
-
-  const io = new Server<
-    ClientToServerEvents,
-    ServerToClientEvents,
-    InterServerEvents,
-    SocketData
-  >(httpServer);
-
-  // Socket.IO middleware
-  io.use(authMiddleware);
-  io.use(timeGateMiddleware);
-
-  // Connection handler
-  registerConnectionHandler(io);
-
-  // Start 2 AM cron disconnect
-  setupTimeGateCron(io);
 
   httpServer.listen(port, "0.0.0.0", () => {
     console.log(`[server] Running on port ${port} (${dev ? "dev" : "production"})`);

@@ -18,7 +18,8 @@ export function connectSocket(token: string): TypedSocket {
   // Return existing socket regardless of state — Socket.IO handles reconnection
   if (socket) return socket;
 
-  socket = io({
+  socket = io(window.location.origin, {
+    path: "/socket.io",
     auth: { token },
     transports: ["polling", "websocket"],
     autoConnect: true,
