@@ -8,7 +8,7 @@ import { useSocket } from "@/hooks/use-socket";
 import type { MatchFoundPayload } from "@/types";
 
 function LobbyContent() {
-  const { socket, isConnected } = useSocket();
+  const { socket, isConnected, debugInfo } = useSocket();
   const router = useRouter();
   const [isSearching, setIsSearching] = useState(false);
   const [status, setStatus] = useState("");
@@ -73,6 +73,8 @@ function LobbyContent() {
         {/* Debug — remove after testing */}
         <p className="text-[10px] font-mono text-gray-500">
           socket: {socket?.id ?? "none"} | {isConnected ? "connected" : "disconnected"}
+          <br />
+          debug: {debugInfo}
         </p>
 
         {isSearching ? (

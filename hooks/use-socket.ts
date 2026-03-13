@@ -12,11 +12,13 @@ type TypedSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 export interface SocketContextValue {
   socket: TypedSocket | null;
   isConnected: boolean;
+  debugInfo?: string;
 }
 
 export const SocketContext = createContext<SocketContextValue>({
   socket: null,
   isConnected: false,
+  debugInfo: "",
 });
 
 export function useSocket(): SocketContextValue {

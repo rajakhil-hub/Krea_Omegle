@@ -21,6 +21,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   const { status } = useSession();
   const [socket, setSocket] = useState<TypedSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [debugInfo, setDebugInfo] = useState("init");
   const didConnectRef = useRef(false);
 
   // Connect once when authenticated — never reconnect on re-renders
@@ -29,24 +30,34 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       const token =
         getCookie("__Secure-authjs.session-token") ||
         getCookie("authjs.session-token");
-      if (!token) return;
 
+      if (!token) {
+        setDebugInfo("session=authenticated but NO cookie found. cookies: " + document.cookie.substring(0, 100));
+        return;
+      }
+
+      setDebugInfo("connecting...");
       const s = connectSocket(token);
       didConnectRef.current = true;
       setSocket(s);
 
       s.on("connect", () => {
         console.log("[socket] Connected:", s.id);
+        setDebugInfo("connected: " + s.id);
         setIsConnected(true);
       });
       s.on("disconnect", (reason) => {
         console.log("[socket] Disconnected:", reason);
+        setDebugInfo("disconnected: " + reason);
         setIsConnected(false);
       });
       s.on("connect_error", (err) => {
         console.error("[socket] Connection error:", err.message);
+        setDebugInfo("connect_error: " + err.message);
         setIsConnected(false);
       });
+    } else if (status !== "authenticated") {
+      setDebugInfo("session=" + status);
     }
 
     if (status === "unauthenticated" && didConnectRef.current) {
@@ -66,7 +77,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <SocketContext.Provider value={{ socket, isConnected }}>
+    <SocketContext.Provider value={{ socket, isConnected, debugInfo }}>
       {children}
     </SocketContext.Provider>
   );
