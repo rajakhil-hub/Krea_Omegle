@@ -10,7 +10,7 @@ import { SocketProvider } from "@/components/providers/socket-provider";
 import { useSocket } from "@/hooks/use-socket";
 import { useMediaStream } from "@/hooks/use-media-stream";
 import { usePeer } from "@/hooks/use-peer";
-import type { MatchFoundPayload, ChatMessage } from "@krea/shared";
+import type { MatchFoundPayload, ChatMessage } from "@/types";
 
 function ChatContent() {
   const { socket, isConnected } = useSocket();

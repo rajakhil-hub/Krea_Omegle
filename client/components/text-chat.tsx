@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import type { ChatMessage } from "@krea/shared";
+import type { ChatMessage } from "@/types";
 
 interface TextChatProps {
   messages: ChatMessage[];

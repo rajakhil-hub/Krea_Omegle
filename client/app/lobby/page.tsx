@@ -6,7 +6,7 @@ import { Navbar } from "@/components/navbar";
 import { TimeGateGuard } from "@/components/time-gate-guard";
 import { SocketProvider } from "@/components/providers/socket-provider";
 import { useSocket } from "@/hooks/use-socket";
-import type { MatchFoundPayload } from "@krea/shared";
+import type { MatchFoundPayload } from "@/types";
 
 function LobbyContent() {
   const { socket, isConnected } = useSocket();

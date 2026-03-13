@@ -6,7 +6,7 @@ import type SimplePeerType from "simple-peer";
 import type {
   ClientToServerEvents,
   ServerToClientEvents,
-} from "@krea/shared";
+} from "@/types";
 import { SOCKET_URL } from "@/lib/constants";
 
 type TypedSocket = Socket<ServerToClientEvents, ClientToServerEvents>;

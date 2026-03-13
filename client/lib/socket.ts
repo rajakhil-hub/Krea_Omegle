@@ -5,7 +5,7 @@ import { SOCKET_URL } from "./constants";
 import type {
   ClientToServerEvents,
   ServerToClientEvents,
-} from "@krea/shared";
+} from "@/types";
 
 type TypedSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 

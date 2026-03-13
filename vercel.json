@@ -1,5 +1,0 @@
-{
-  "buildCommand": "cd client && next build",
-  "outputDirectory": "client/.next",
-  "installCommand": "npm install"
-}
