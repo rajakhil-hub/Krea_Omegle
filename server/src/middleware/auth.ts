@@ -21,11 +21,20 @@ export const authMiddleware: SocketMiddleware = async (socket, next) => {
   }
 
   try {
-    const decoded = await decode({
+    // Try production salt first, then development salt
+    let decoded = await decode({
       token,
       secret: config.NEXTAUTH_SECRET,
-      salt: "authjs.session-token",
-    });
+      salt: "__Secure-authjs.session-token",
+    }).catch(() => null);
+
+    if (!decoded) {
+      decoded = await decode({
+        token,
+        secret: config.NEXTAUTH_SECRET,
+        salt: "authjs.session-token",
+      });
+    }
 
     if (!decoded?.email) {
       return next(new Error("Invalid token: no email found"));

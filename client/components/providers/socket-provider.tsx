@@ -23,7 +23,9 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   const [isConnected, setIsConnected] = useState(false);
 
   const connect = useCallback(() => {
-    const token = getCookie("authjs.session-token");
+    const token =
+      getCookie("__Secure-authjs.session-token") ||
+      getCookie("authjs.session-token");
     if (!token) return;
 
     const s = connectSocket(token);
