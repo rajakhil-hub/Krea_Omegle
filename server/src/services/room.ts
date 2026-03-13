@@ -64,6 +64,10 @@ class RoomService {
   getRoomCount(): number {
     return this.rooms.size;
   }
+
+  getAllRooms(): Room[] {
+    return Array.from(this.rooms.values());
+  }
 }
 
 export const roomService = new RoomService();

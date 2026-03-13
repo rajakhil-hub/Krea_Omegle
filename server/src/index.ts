@@ -7,6 +7,8 @@ import { authMiddleware } from "./middleware/auth.js";
 import { timeGateMiddleware } from "./middleware/time-gate.js";
 import { registerConnectionHandler } from "./handlers/connection.js";
 import { setupTimeGateCron } from "./services/time-gate.js";
+import { roomService } from "./services/room.js";
+import { queueService } from "./services/queue.js";
 import type {
   ClientToServerEvents,
   ServerToClientEvents,
@@ -74,6 +76,25 @@ const io = new Server<
 // Socket.io middleware
 io.use(authMiddleware);
 io.use(timeGateMiddleware);
+
+// Debug endpoint — shows server state (placed after io is created)
+app.get("/debug", (_req, res) => {
+  const sockets = Array.from(io.sockets.sockets.entries()).map(([id, s]) => ({
+    id,
+    name: s.data.name,
+    rooms: Array.from(s.rooms),
+  }));
+  res.json({
+    connectedSockets: sockets.length,
+    sockets,
+    rooms: roomService.getAllRooms().map((r) => ({
+      id: r.id,
+      socket1Id: r.socket1Id,
+      socket2Id: r.socket2Id,
+    })),
+    queueSize: queueService.getSize(),
+  });
+});
 
 // Connection handler
 registerConnectionHandler(io);
