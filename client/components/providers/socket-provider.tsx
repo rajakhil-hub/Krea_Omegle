@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { SocketContext } from "@/hooks/use-socket";
-import { connectSocket, disconnectSocket, getSocket } from "@/lib/socket";
+import { connectSocket, disconnectSocket } from "@/lib/socket";
 import type { Socket } from "socket.io-client";
 import type {
   ClientToServerEvents,
@@ -18,38 +18,52 @@ function getCookie(name: string): string | null {
 }
 
 export function SocketProvider({ children }: { children: React.ReactNode }) {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const [socket, setSocket] = useState<TypedSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const didConnectRef = useRef(false);
 
-  const connect = useCallback(() => {
-    const token =
-      getCookie("__Secure-authjs.session-token") ||
-      getCookie("authjs.session-token");
-    if (!token) return;
-
-    const s = connectSocket(token);
-    setSocket(s);
-
-    s.on("connect", () => setIsConnected(true));
-    s.on("disconnect", () => setIsConnected(false));
-    s.on("connect_error", (err) => {
-      console.error("[socket] Connection error:", err.message);
-      setIsConnected(false);
-    });
-  }, []);
-
+  // Connect once when authenticated — never reconnect on re-renders
   useEffect(() => {
-    if (status === "authenticated" && session) {
-      connect();
+    if (status === "authenticated" && !didConnectRef.current) {
+      const token =
+        getCookie("__Secure-authjs.session-token") ||
+        getCookie("authjs.session-token");
+      if (!token) return;
+
+      const s = connectSocket(token);
+      didConnectRef.current = true;
+      setSocket(s);
+
+      s.on("connect", () => {
+        console.log("[socket] Connected:", s.id);
+        setIsConnected(true);
+      });
+      s.on("disconnect", (reason) => {
+        console.log("[socket] Disconnected:", reason);
+        setIsConnected(false);
+      });
+      s.on("connect_error", (err) => {
+        console.error("[socket] Connection error:", err.message);
+        setIsConnected(false);
+      });
     }
 
-    return () => {
+    if (status === "unauthenticated" && didConnectRef.current) {
       disconnectSocket();
+      didConnectRef.current = false;
       setSocket(null);
       setIsConnected(false);
+    }
+  }, [status]);
+
+  // Cleanup only on full unmount
+  useEffect(() => {
+    return () => {
+      disconnectSocket();
+      didConnectRef.current = false;
     };
-  }, [status, session, connect]);
+  }, []);
 
   return (
     <SocketContext.Provider value={{ socket, isConnected }}>

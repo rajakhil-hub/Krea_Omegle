@@ -44,15 +44,18 @@ function ChatContent() {
       router.push("/lobby");
       return;
     }
-    setMatchData(JSON.parse(stored));
+    const data = JSON.parse(stored);
+    console.log("[chat] Match data loaded:", data.partnerId, "initiator:", data.isInitiator, "socket:", socket?.id);
+    setMatchData(data);
     requestPermission();
-  }, [router, requestPermission]);
+  }, [router, requestPermission, socket]);
 
   // Socket event listeners
   useEffect(() => {
     if (!socket) return;
 
     const handleMessage = (data: ChatMessage) => {
+      console.log("[chat] Received message:", data.message.slice(0, 30));
       setMessages((prev) => [...prev, data]);
     };
 
@@ -90,6 +93,7 @@ function ChatContent() {
   const sendMessage = useCallback(
     (message: string) => {
       if (!socket) return;
+      console.log("[chat] Sending message, socket:", socket.id, "connected:", socket.connected);
       socket.emit("send_message", message);
       setMessages((prev) => [
         ...prev,

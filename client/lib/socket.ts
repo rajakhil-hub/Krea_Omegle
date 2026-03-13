@@ -16,13 +16,14 @@ export function getSocket(): TypedSocket | null {
 }
 
 export function connectSocket(token: string): TypedSocket {
-  if (socket?.connected) return socket;
+  // Return existing socket regardless of state — Socket.IO handles reconnection
+  if (socket) return socket;
 
   socket = io(SOCKET_URL, {
     auth: { token },
     autoConnect: true,
     reconnection: true,
-    reconnectionAttempts: 5,
+    reconnectionAttempts: 10,
     reconnectionDelay: 1000,
   }) as TypedSocket;
 

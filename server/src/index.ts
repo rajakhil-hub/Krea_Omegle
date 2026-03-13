@@ -21,15 +21,37 @@ app.get("/health", (_req, res) => {
   res.json({ status: "ok", time: new Date().toISOString() });
 });
 
-// ICE server endpoint — returns STUN servers (+ TURN if Twilio configured)
-app.get("/api/ice-servers", (_req, res) => {
+// ICE server endpoint — returns STUN + TURN servers
+app.get("/api/ice-servers", async (_req, res) => {
   const iceServers: RTCIceServer[] = [
     { urls: "stun:stun.l.google.com:19302" },
     { urls: "stun:stun1.l.google.com:19302" },
   ];
 
-  // TODO: If Twilio credentials are set, fetch ephemeral TURN credentials
-  // and add them to iceServers
+  // Option 1: Metered TURN API (free tier — sign up at metered.ca)
+  if (config.METERED_API_KEY) {
+    try {
+      const resp = await fetch(
+        `https://krea.metered.live/api/v1/turn/credentials?apiKey=${config.METERED_API_KEY}`
+      );
+      const turnServers = await resp.json();
+      if (Array.isArray(turnServers)) {
+        iceServers.push(...turnServers);
+      }
+    } catch (err) {
+      console.error("[ice] Failed to fetch Metered TURN credentials:", err);
+    }
+  }
+
+  // Option 2: Manual TURN credentials from env vars
+  if (config.TURN_URLS && config.TURN_USERNAME && config.TURN_CREDENTIAL) {
+    const turnUrls = config.TURN_URLS.split(",").map((u: string) => u.trim());
+    iceServers.push({
+      urls: turnUrls,
+      username: config.TURN_USERNAME,
+      credential: config.TURN_CREDENTIAL,
+    });
+  }
 
   res.json({ iceServers });
 });

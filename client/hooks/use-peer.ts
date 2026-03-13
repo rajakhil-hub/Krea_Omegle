@@ -86,6 +86,8 @@ export function usePeer({
 
       if (!mounted) return;
 
+      console.log("[peer] Creating peer, initiator:", isInitiator, "partner:", partnerId, "iceServers:", iceServers.length);
+
       const peer = new SimplePeer({
         initiator: isInitiator,
         stream: localStream,
@@ -96,10 +98,12 @@ export function usePeer({
       peerRef.current = peer;
 
       peer.on("signal", (data) => {
+        console.log("[peer] Sending signal to", partnerId);
         socket.emit("webrtc_signal", { target: partnerId, signal: data });
       });
 
       peer.on("stream", (stream) => {
+        console.log("[peer] Received remote stream");
         if (mounted) setRemoteStream(stream);
       });
 

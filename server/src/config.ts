@@ -17,4 +17,8 @@ export const config = {
   TIME_GATE_TIMEZONE: process.env.TIME_GATE_TIMEZONE || "Asia/Kolkata",
   TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID || "",
   TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN || "",
+  METERED_API_KEY: process.env.METERED_API_KEY || "",
+  TURN_URLS: process.env.TURN_URLS || "",
+  TURN_USERNAME: process.env.TURN_USERNAME || "",
+  TURN_CREDENTIAL: process.env.TURN_CREDENTIAL || "",
 };
