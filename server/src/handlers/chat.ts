@@ -11,7 +11,7 @@ import type {
 type IOServer = Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>;
 type IOSocket = Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>;
 
-export function registerChatHandlers(_io: IOServer, socket: IOSocket): void {
+export function registerChatHandlers(io: IOServer, socket: IOSocket): void {
   socket.on("send_message", (message: string) => {
     // Validate
     if (!message || typeof message !== "string") return;
@@ -21,12 +21,15 @@ export function registerChatHandlers(_io: IOServer, socket: IOSocket): void {
     // Find partner
     const partner = roomService.getPartner(socket.id);
     if (!partner) {
+      console.log(`[chat] ${socket.data.name} sent message but has no partner`);
       socket.emit("error", { message: "Not in a chat room" });
       return;
     }
 
-    // Relay to partner
-    socket.to(partner).emit("receive_message", {
+    console.log(`[chat] ${socket.data.name} -> partner ${partner}: "${trimmed.slice(0, 30)}..."`);
+
+    // Relay to partner using io.to() for direct delivery
+    io.to(partner).emit("receive_message", {
       message: trimmed,
       timestamp: Date.now(),
       sender: "partner",

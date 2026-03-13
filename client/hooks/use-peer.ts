@@ -26,19 +26,45 @@ export function usePeer({
 }: UsePeerOptions) {
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const peerRef = useRef<SimplePeerType.Instance | null>(null);
+  const signalBufferRef = useRef<unknown[]>([]);
 
   const destroyPeer = useCallback(() => {
     if (peerRef.current) {
       peerRef.current.destroy();
       peerRef.current = null;
     }
+    signalBufferRef.current = [];
     setRemoteStream(null);
   }, []);
 
+  // Step 1: Buffer incoming WebRTC signals immediately when socket + partnerId are available
+  // This ensures no signals are lost while waiting for localStream/camera permission
+  useEffect(() => {
+    if (!socket || !partnerId) return;
+
+    const handleSignal = ({ signal }: { signal: unknown }) => {
+      const peer = peerRef.current;
+      if (peer && !peer.destroyed) {
+        // Peer exists — apply signal directly
+        peer.signal(signal as SimplePeerType.SignalData);
+      } else {
+        // Peer not ready yet — buffer the signal
+        console.log("[peer] Buffering signal (peer not ready)");
+        signalBufferRef.current.push(signal);
+      }
+    };
+
+    socket.on("webrtc_signal", handleSignal);
+
+    return () => {
+      socket.off("webrtc_signal", handleSignal);
+    };
+  }, [socket, partnerId]);
+
+  // Step 2: Create the peer once localStream is available
   useEffect(() => {
     if (!localStream || !socket || !partnerId) return;
 
-    let peer: SimplePeerType.Instance;
     let mounted = true;
 
     (async () => {
@@ -60,7 +86,7 @@ export function usePeer({
 
       if (!mounted) return;
 
-      peer = new SimplePeer({
+      const peer = new SimplePeer({
         initiator: isInitiator,
         stream: localStream,
         trickle: true,
@@ -86,18 +112,17 @@ export function usePeer({
         if (mounted) setRemoteStream(null);
       });
 
-      // Listen for incoming signals from partner
-      const handleSignal = ({ signal }: { signal: unknown }) => {
-        if (peer && !peer.destroyed) {
-          peer.signal(signal as SimplePeerType.SignalData);
+      // Apply any buffered signals that arrived before peer was ready
+      const buffered = signalBufferRef.current;
+      if (buffered.length > 0) {
+        console.log(`[peer] Applying ${buffered.length} buffered signals`);
+        for (const signal of buffered) {
+          if (!peer.destroyed) {
+            peer.signal(signal as SimplePeerType.SignalData);
+          }
         }
-      };
-      socket.on("webrtc_signal", handleSignal);
-
-      // Cleanup listener on effect teardown
-      return () => {
-        socket.off("webrtc_signal", handleSignal);
-      };
+        signalBufferRef.current = [];
+      }
     })();
 
     return () => {
