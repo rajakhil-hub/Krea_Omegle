@@ -19,6 +19,9 @@ import type {
 const dev = process.env.NODE_ENV !== "production";
 const port = parseInt(process.env.PORT || "3000");
 
+// Kill switch — when true, all users are disconnected and new connections are rejected
+let appKilled = false;
+
 const app = next({ dev });
 const nextHandler = app.getRequestHandler();
 
@@ -43,6 +46,10 @@ app.prepare().then(() => {
 
   // Socket.IO middleware
   io.use(authMiddleware);
+  io.use((socket, next) => {
+    if (appKilled) return next(new Error("App is currently turned off. Try again later."));
+    next();
+  });
   io.use(timeGateMiddleware);
 
   // Connection handler
@@ -111,6 +118,7 @@ app.prepare().then(() => {
         rooms: roomService.getRoomCount(),
         gender: genderCounts,
         schools: schoolCounts,
+        appKilled,
         timeGate: {
           startHour: config.TIME_GATE_START_HOUR,
           endHour: config.TIME_GATE_END_HOUR,
@@ -253,6 +261,36 @@ app.prepare().then(() => {
             res.writeHead(400, { "Content-Type": "application/json" });
             res.end(JSON.stringify({ error: "Invalid hours (0-24)" }));
           }
+        } catch {
+          res.writeHead(400, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "Invalid JSON" }));
+        }
+      });
+      return;
+    }
+
+    // Admin kill switch toggle
+    if (pathname === "/api/admin/kill-switch" && req.method === "POST") {
+      let body = "";
+      req.on("data", (chunk) => { body += chunk; });
+      req.on("end", () => {
+        try {
+          const { killed } = JSON.parse(body);
+          appKilled = !!killed;
+          console.log(`[admin] App ${appKilled ? "TURNED OFF" : "TURNED ON"}`);
+
+          if (appKilled) {
+            // Disconnect all users
+            for (const [, s] of io.sockets.sockets) {
+              s.emit("force_disconnect", { reason: "App has been turned off by admin." });
+              s.disconnect(true);
+            }
+            roomService.destroyAll();
+            queueService.clear();
+          }
+
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ ok: true, appKilled }));
         } catch {
           res.writeHead(400, { "Content-Type": "application/json" });
           res.end(JSON.stringify({ error: "Invalid JSON" }));

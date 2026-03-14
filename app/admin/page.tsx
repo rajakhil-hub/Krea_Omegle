@@ -10,6 +10,7 @@ interface Stats {
   rooms: number;
   gender: { male: number; female: number; other: number; unset: number };
   schools: Record<string, number>;
+  appKilled: boolean;
   timeGate: { startHour: number; endHour: number; timezone: string };
 }
 
@@ -33,6 +34,10 @@ export default function AdminPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
 
+  // Kill switch
+  const [appKilled, setAppKilled] = useState(false);
+  const [toggling, setToggling] = useState(false);
+
   // Force match
   const [matchEmail1, setMatchEmail1] = useState("");
   const [matchEmail2, setMatchEmail2] = useState("");
@@ -46,6 +51,7 @@ export default function AdminPage() {
       const res = await fetch("/api/admin/stats");
       const data = await res.json();
       setStats(data);
+      setAppKilled(data.appKilled);
       // Only set input values on first load so they don't get overwritten while typing
       if (!initializedRef.current) {
         setStartHour(data.timeGate.startHour);
@@ -102,6 +108,23 @@ export default function AdminPage() {
       setMessage("Network error");
     }
     setSaving(false);
+  };
+
+  const toggleKillSwitch = async () => {
+    setToggling(true);
+    try {
+      const res = await fetch("/api/admin/kill-switch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ killed: !appKilled }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setAppKilled(data.appKilled);
+        fetchStats();
+      }
+    } catch { /* ignore */ }
+    setToggling(false);
   };
 
   const forceMatch = async () => {
@@ -161,6 +184,23 @@ export default function AdminPage() {
           <p className="text-[var(--muted)]">Loading stats...</p>
         ) : (
           <>
+            {/* Kill Switch */}
+            <div className={`rounded-xl border p-5 flex items-center justify-between ${appKilled ? "border-red-500/50 bg-red-950/30" : "border-[var(--card-border)] bg-[var(--card)]"}`}>
+              <div>
+                <h3 className="text-lg font-semibold">App Status</h3>
+                <p className={`text-sm mt-1 ${appKilled ? "text-red-400" : "text-green-400"}`}>
+                  {appKilled ? "App is OFF — all users disconnected, new connections blocked" : "App is ON — running normally"}
+                </p>
+              </div>
+              <button
+                onClick={toggleKillSwitch}
+                disabled={toggling}
+                className={`relative inline-flex h-8 w-14 shrink-0 cursor-pointer rounded-full transition-colors duration-200 ${appKilled ? "bg-red-600" : "bg-green-600"} disabled:opacity-50`}
+              >
+                <span className={`inline-block h-6 w-6 rounded-full bg-white shadow transform transition-transform duration-200 mt-1 ${appKilled ? "translate-x-1" : "translate-x-7"}`} />
+              </button>
+            </div>
+
             {/* Online Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <StatCard label="Online" value={stats.online} color="purple" />
