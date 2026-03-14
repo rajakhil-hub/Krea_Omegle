@@ -65,6 +65,19 @@ app.prepare().then(() => {
     // Skip Socket.IO requests — already handled by Engine.IO listener
     if (pathname.startsWith("/socket.io")) return;
 
+    // Public time gate status (for waiting page)
+    if (pathname === "/api/time-gate") {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({
+        startHour: config.TIME_GATE_START_HOUR,
+        endHour: config.TIME_GATE_END_HOUR,
+        timezone: config.TIME_GATE_TIMEZONE,
+        appKilled,
+        waitingCount: io.sockets.sockets.size,
+      }));
+      return;
+    }
+
     // Health check
     if (pathname === "/health") {
       res.writeHead(200, { "Content-Type": "application/json" });
