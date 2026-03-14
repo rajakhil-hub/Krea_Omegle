@@ -8,7 +8,7 @@ interface Stats {
   inQueue: number;
   inRooms: number;
   rooms: number;
-  gender: { male: number; female: number; other: number; unset: number };
+  gender: { male: number; female: number; other: number };
   schools: Record<string, number>;
   appKilled: boolean;
   timeGate: { startHour: number; endHour: number; timezone: string };
@@ -213,18 +213,17 @@ export default function AdminPage() {
             <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-5">
               <h3 className="text-lg font-semibold mb-2">Gender Breakdown</h3>
               <p className="text-xs text-[var(--muted)] mb-4">Tap a card to see active users</p>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <GenderCard label="Male" count={stats.gender.male} total={stats.online} color="#6366f1" active={selectedGender === "male"} onClick={() => fetchUsers("male")} />
                 <GenderCard label="Female" count={stats.gender.female} total={stats.online} color="#ec4899" active={selectedGender === "female"} onClick={() => fetchUsers("female")} />
                 <GenderCard label="Other" count={stats.gender.other} total={stats.online} color="#8b5cf6" active={selectedGender === "other"} onClick={() => fetchUsers("other")} />
-                <GenderCard label="Not Set" count={stats.gender.unset} total={stats.online} color="#6b7280" active={selectedGender === "unset"} onClick={() => fetchUsers("unset")} />
               </div>
 
               {/* User list */}
               {selectedGender && (
                 <div className="mt-4 rounded-lg bg-[var(--background)] p-4">
                   <h4 className="text-sm font-semibold mb-3 text-[var(--muted)]">
-                    {selectedGender === "unset" ? "Not Set" : selectedGender.charAt(0).toUpperCase() + selectedGender.slice(1)} Users
+                    {selectedGender ? selectedGender.charAt(0).toUpperCase() + selectedGender.slice(1) : ""} Users
                   </h4>
                   {loadingUsers ? (
                     <p className="text-sm text-[var(--muted)]">Loading...</p>

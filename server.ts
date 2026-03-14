@@ -109,15 +109,13 @@ app.prepare().then(() => {
     // Admin stats endpoint
     if (pathname === "/api/admin/stats") {
       const sockets = Array.from(io.sockets.sockets.values());
-      const genderCounts = { male: 0, female: 0, other: 0, unset: 0 };
+      const genderCounts = { male: 0, female: 0, other: 0 };
       const schoolCounts: Record<string, number> = {};
 
       for (const s of sockets) {
         const g = s.data.gender;
         if (g === "male" || g === "female" || g === "other") {
           genderCounts[g]++;
-        } else {
-          genderCounts.unset++;
         }
         const school = s.data.school || "KREA";
         schoolCounts[school] = (schoolCounts[school] || 0) + 1;
@@ -148,7 +146,7 @@ app.prepare().then(() => {
       const sockets = Array.from(io.sockets.sockets.values());
 
       const users = sockets
-        .filter((s) => !genderFilter || s.data.gender === genderFilter)
+        .filter((s) => !genderFilter || (genderFilter === "unset" ? !s.data.gender : s.data.gender === genderFilter))
         .map((s) => {
           const room = roomService.getRoomBySocket(s.id);
           let status = "idle";

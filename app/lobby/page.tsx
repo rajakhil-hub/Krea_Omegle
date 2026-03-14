@@ -13,6 +13,13 @@ function LobbyContent() {
   const [isSearching, setIsSearching] = useState(false);
   const [status, setStatus] = useState("");
 
+  // Redirect to gender selection if not set
+  useEffect(() => {
+    if (!sessionStorage.getItem("gender")) {
+      router.replace("/gender");
+    }
+  }, [router]);
+
   const handleMatchFound = useCallback(
     (data: MatchFoundPayload) => {
       // Store match data for the chat page
