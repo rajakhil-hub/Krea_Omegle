@@ -120,6 +120,121 @@ app.prepare().then(() => {
       return;
     }
 
+    // Admin users list (with optional gender filter)
+    if (pathname.startsWith("/api/admin/users")) {
+      const url = new URL(req.url || "/", `http://localhost:${port}`);
+      const genderFilter = url.searchParams.get("gender");
+      const sockets = Array.from(io.sockets.sockets.values());
+
+      const users = sockets
+        .filter((s) => !genderFilter || s.data.gender === genderFilter)
+        .map((s) => {
+          const room = roomService.getRoomBySocket(s.id);
+          let status = "idle";
+          if (room) {
+            const partnerId = room.socket1Id === s.id ? room.socket2Id : room.socket1Id;
+            const partnerSocket = io.sockets.sockets.get(partnerId);
+            status = "chatting with " + (partnerSocket?.data.name || "unknown");
+          } else if (queueService.isInQueue(s.id)) {
+            status = "in queue";
+          }
+          return {
+            name: s.data.name,
+            email: s.data.email,
+            gender: s.data.gender || "unset",
+            school: s.data.school || "KREA",
+            status,
+          };
+        });
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ users }));
+      return;
+    }
+
+    // Admin force match two users by email
+    if (pathname === "/api/admin/force-match" && req.method === "POST") {
+      let body = "";
+      req.on("data", (chunk) => { body += chunk; });
+      req.on("end", () => {
+        try {
+          const { email1, email2 } = JSON.parse(body);
+          if (!email1 || !email2) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ error: "Both emails are required" }));
+            return;
+          }
+
+          // Find sockets by email
+          const allSockets = Array.from(io.sockets.sockets.values());
+          const sock1 = allSockets.find((s) => s.data.email === email1);
+          const sock2 = allSockets.find((s) => s.data.email === email2);
+
+          if (!sock1 || !sock2) {
+            res.writeHead(404, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({
+              error: `User not found: ${!sock1 ? email1 : ""}${!sock1 && !sock2 ? ", " : ""}${!sock2 ? email2 : ""}`,
+            }));
+            return;
+          }
+
+          // Disconnect both from current rooms if any
+          const existingRoom1 = roomService.getRoomBySocket(sock1.id);
+          if (existingRoom1) {
+            const partner1 = existingRoom1.socket1Id === sock1.id ? existingRoom1.socket2Id : existingRoom1.socket1Id;
+            io.to(partner1).emit("partner_disconnected");
+            sock1.leave(existingRoom1.id);
+            const p1Sock = io.sockets.sockets.get(partner1);
+            p1Sock?.leave(existingRoom1.id);
+            roomService.destroyRoom(existingRoom1.id);
+          }
+
+          const existingRoom2 = roomService.getRoomBySocket(sock2.id);
+          if (existingRoom2) {
+            const partner2 = existingRoom2.socket1Id === sock2.id ? existingRoom2.socket2Id : existingRoom2.socket1Id;
+            io.to(partner2).emit("partner_disconnected");
+            sock2.leave(existingRoom2.id);
+            const p2Sock = io.sockets.sockets.get(partner2);
+            p2Sock?.leave(existingRoom2.id);
+            roomService.destroyRoom(existingRoom2.id);
+          }
+
+          // Remove both from queue
+          queueService.removeFromQueue(sock1.id);
+          queueService.removeFromQueue(sock2.id);
+
+          // Create new room
+          const room = roomService.createRoom(sock1.id, sock2.id, sock1.data.email, sock2.data.email);
+          sock1.join(room.id);
+          sock2.join(room.id);
+
+          sock1.emit("match_found", {
+            roomId: room.id,
+            partnerId: sock2.id,
+            partnerName: sock2.data.name,
+            partnerSchool: sock2.data.school,
+            isInitiator: true,
+          });
+
+          sock2.emit("match_found", {
+            roomId: room.id,
+            partnerId: sock1.id,
+            partnerName: sock1.data.name,
+            partnerSchool: sock1.data.school,
+            isInitiator: false,
+          });
+
+          console.log(`[admin] Force matched ${sock1.data.name} <-> ${sock2.data.name}`);
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ ok: true, room: room.id }));
+        } catch {
+          res.writeHead(400, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "Invalid JSON" }));
+        }
+      });
+      return;
+    }
+
     // Admin update time gate
     if (pathname === "/api/admin/time-gate" && req.method === "POST") {
       let body = "";
