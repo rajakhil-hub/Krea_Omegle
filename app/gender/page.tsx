@@ -37,9 +37,6 @@ export default function GenderPage() {
         <div className="text-center space-y-8">
           <div className="space-y-2">
             <h2 className="text-3xl font-bold">Select your gender</h2>
-            <p className="text-[var(--muted)]">
-              This helps us show stats — it&apos;s not shared with your chat partner
-            </p>
           </div>
 
           <div className="flex gap-4 justify-center">
