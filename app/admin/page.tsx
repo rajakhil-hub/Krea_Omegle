@@ -39,13 +39,19 @@ export default function AdminPage() {
   const [matchMessage, setMatchMessage] = useState("");
   const [matching, setMatching] = useState(false);
 
+  const initializedRef = useRef(false);
+
   const fetchStats = useCallback(async () => {
     try {
       const res = await fetch("/api/admin/stats");
       const data = await res.json();
       setStats(data);
-      setStartHour(data.timeGate.startHour);
-      setEndHour(data.timeGate.endHour);
+      // Only set input values on first load so they don't get overwritten while typing
+      if (!initializedRef.current) {
+        setStartHour(data.timeGate.startHour);
+        setEndHour(data.timeGate.endHour);
+        initializedRef.current = true;
+      }
     } catch {
       console.error("Failed to fetch stats");
     }
@@ -87,6 +93,7 @@ export default function AdminPage() {
       const data = await res.json();
       if (data.ok) {
         setMessage("Time gate updated!");
+        initializedRef.current = false;
         fetchStats();
       } else {
         setMessage(data.error || "Failed to update");
