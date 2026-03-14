@@ -33,6 +33,7 @@ function handleMatch(io: IOServer, match: { socket1Id: string; socket2Id: string
     roomId: room.id,
     partnerId: socket2.id,
     partnerName: socket2.data.name,
+    partnerSchool: socket2.data.school,
     isInitiator: true,
   });
 
@@ -40,6 +41,7 @@ function handleMatch(io: IOServer, match: { socket1Id: string; socket2Id: string
     roomId: room.id,
     partnerId: socket1.id,
     partnerName: socket1.data.name,
+    partnerSchool: socket1.data.school,
     isInitiator: false,
   });
 

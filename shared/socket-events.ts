@@ -3,6 +3,7 @@ export interface MatchFoundPayload {
   roomId: string;
   partnerId: string;
   partnerName: string;
+  partnerSchool: string;
   isInitiator: boolean;
 }
 
@@ -47,4 +48,5 @@ export interface InterServerEvents {}
 export interface SocketData {
   email: string;
   name: string;
+  school: string;
 }

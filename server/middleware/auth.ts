@@ -8,6 +8,24 @@ import type {
   SocketData,
 } from "../../shared/socket-events";
 
+const SCHOOL_KEYWORDS: Record<string, string> = {
+  sias: "SIAS",
+  mba: "MBA",
+  bba: "BBA",
+  bsc: "BSc",
+  ba: "BA",
+  ma: "MA",
+  phd: "PhD",
+};
+
+function extractSchool(email: string): string {
+  const local = email.split("@")[0].toLowerCase();
+  for (const [keyword, label] of Object.entries(SCHOOL_KEYWORDS)) {
+    if (local.includes(keyword)) return label;
+  }
+  return "KREA";
+}
+
 type SocketMiddleware = (
   socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
   next: (err?: Error) => void
@@ -47,6 +65,7 @@ export const authMiddleware: SocketMiddleware = async (socket, next) => {
 
     socket.data.email = decoded.email;
     socket.data.name = (decoded.name as string) || decoded.email.split("@")[0];
+    socket.data.school = extractSchool(decoded.email);
     next();
   } catch (err) {
     console.error("[auth] Token decode failed:", err);

@@ -40,6 +40,7 @@ export function registerConnectionHandler(io: IOServer): void {
         roomId: existingRoom.id,
         partnerId,
         partnerName,
+        partnerSchool: partnerSocket?.data.school || "KREA",
         isInitiator,
       });
 
@@ -48,6 +49,7 @@ export function registerConnectionHandler(io: IOServer): void {
         roomId: existingRoom.id,
         partnerId: socket.id,
         partnerName: socket.data.name,
+        partnerSchool: socket.data.school,
         isInitiator: !isInitiator,
       });
 

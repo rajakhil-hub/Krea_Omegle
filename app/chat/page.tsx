@@ -142,6 +142,7 @@ function ChatContent() {
         {matchData && (
           <p className="text-center text-sm text-[var(--muted)]">
             Chatting with <span className="text-purple-400">{matchData.partnerName}</span>
+            <span className="ml-2 rounded bg-purple-600/20 px-2 py-0.5 text-xs text-purple-300">{matchData.partnerSchool}</span>
           </p>
         )}
       </div>
