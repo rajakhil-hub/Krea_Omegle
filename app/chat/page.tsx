@@ -18,6 +18,21 @@ function ChatContent() {
   const [matchData, setMatchData] = useState<MatchFoundPayload | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [partnerLeft, setPartnerLeft] = useState(false);
+  const [onlineCount, setOnlineCount] = useState(0);
+
+  // Fetch live online count
+  useEffect(() => {
+    const fetchCount = async () => {
+      try {
+        const res = await fetch("/api/time-gate");
+        const data = await res.json();
+        setOnlineCount(data.waitingCount || 0);
+      } catch { /* ignore */ }
+    };
+    fetchCount();
+    const interval = setInterval(fetchCount, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   const {
     localStream,
@@ -139,12 +154,21 @@ function ChatContent() {
           onToggleAudio={toggleAudio}
           onToggleVideo={toggleVideo}
         />
-        {matchData && (
-          <p className="text-center text-sm text-[var(--muted)]">
-            Chatting with <span className="text-purple-400">{matchData.partnerName}</span>
-            <span className="ml-2 rounded bg-purple-600/20 px-2 py-0.5 text-xs text-purple-300">{matchData.partnerSchool}</span>
-          </p>
-        )}
+        <div className="flex items-center justify-center gap-4">
+          {matchData && (
+            <p className="text-sm text-[var(--muted)]">
+              Chatting with <span className="text-purple-400">{matchData.partnerName}</span>
+              <span className="ml-2 rounded bg-purple-600/20 px-2 py-0.5 text-xs text-purple-300">{matchData.partnerSchool}</span>
+            </p>
+          )}
+          <span className="flex items-center gap-1.5 text-sm text-green-400">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
+            </span>
+            {onlineCount} online
+          </span>
+        </div>
       </div>
 
       {/* Right side: Text Chat */}
