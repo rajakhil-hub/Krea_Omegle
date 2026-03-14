@@ -13,8 +13,9 @@ import type {
 type TypedSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
 function getCookie(name: string): string | null {
-  const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`));
-  return match ? decodeURIComponent(match[2]) : null;
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = document.cookie.match(new RegExp(`(?:^|; )${escaped}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : null;
 }
 
 export function SocketProvider({ children }: { children: React.ReactNode }) {
@@ -30,15 +31,18 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         getCookie("__Secure-authjs.session-token") ||
         getCookie("authjs.session-token");
 
-      if (!token) return;
+      if (!token) {
+        console.error("[socket] No auth cookie found. Cookies:", document.cookie.substring(0, 100));
+        return;
+      }
 
       const s = connectSocket(token);
       didConnectRef.current = true;
       setSocket(s);
 
-      s.on("connect", () => setIsConnected(true));
-      s.on("disconnect", () => setIsConnected(false));
-      s.on("connect_error", () => setIsConnected(false));
+      s.on("connect", () => { console.log("[socket] Connected:", s.id); setIsConnected(true); });
+      s.on("disconnect", (reason) => { console.log("[socket] Disconnected:", reason); setIsConnected(false); });
+      s.on("connect_error", (err) => { console.error("[socket] Connect error:", err.message); setIsConnected(false); });
     }
 
     if (status === "unauthenticated" && didConnectRef.current) {
