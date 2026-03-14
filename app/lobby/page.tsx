@@ -22,6 +22,15 @@ function LobbyContent() {
     [router]
   );
 
+  // Send stored gender to server when socket connects
+  useEffect(() => {
+    if (!socket || !isConnected) return;
+    const gender = sessionStorage.getItem("gender") as "male" | "female" | "other" | null;
+    if (gender) {
+      socket.emit("set_gender", gender);
+    }
+  }, [socket, isConnected]);
+
   useEffect(() => {
     if (!socket) return;
 

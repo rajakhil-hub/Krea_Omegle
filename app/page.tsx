@@ -11,7 +11,7 @@ export default async function Home({
   const params = await searchParams;
 
   if (session) {
-    redirect("/lobby");
+    redirect("/gender");
   }
 
   return (

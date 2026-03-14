@@ -27,6 +27,7 @@ export interface ClientToServerEvents {
   skip: () => void;
   send_message: (message: string) => void;
   webrtc_signal: (data: { target: string; signal: unknown }) => void;
+  set_gender: (gender: "male" | "female" | "other") => void;
 }
 
 /** Events emitted from the server to the client */
@@ -49,4 +50,5 @@ export interface SocketData {
   email: string;
   name: string;
   school: string;
+  gender: "male" | "female" | "other" | "";
 }

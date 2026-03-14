@@ -56,6 +56,14 @@ export function registerConnectionHandler(io: IOServer): void {
       console.log(`[connect] ${socket.data.name} rejoined room ${existingRoom.id}`);
     }
 
+    // Handle gender selection
+    socket.on("set_gender", (gender) => {
+      if (["male", "female", "other"].includes(gender)) {
+        socket.data.gender = gender;
+        console.log(`[gender] ${socket.data.name} set gender to ${gender}`);
+      }
+    });
+
     // Register all event handlers
     registerMatchmakingHandlers(io, socket);
     registerSignalingHandlers(io, socket);

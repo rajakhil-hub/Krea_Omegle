@@ -66,6 +66,7 @@ export const authMiddleware: SocketMiddleware = async (socket, next) => {
     socket.data.email = decoded.email;
     socket.data.name = (decoded.name as string) || decoded.email.split("@")[0];
     socket.data.school = extractSchool(decoded.email);
+    socket.data.gender = "";
     next();
   } catch (err) {
     console.error("[auth] Token decode failed:", err);
